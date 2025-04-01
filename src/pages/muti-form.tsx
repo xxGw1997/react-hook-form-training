@@ -71,7 +71,6 @@ export const MutiForm = () => {
   });
 
   const isCheck = useWatch({ control: form.control, name: "isCheck" });
-  const start_date = useWatch({ control: form.control, name: "start_date" });
 
   const {
     fields: days,
@@ -100,7 +99,27 @@ export const MutiForm = () => {
     }
   }
 
+  const hoursRef = useRef<HTMLDivElement>(null);
+  const minutesRef = useRef<HTMLDivElement>(null);
+  const secondsRef = useRef<HTMLDivElement>(null);
+
+  const scrollToPosition = (type: "hour" | "minute" | "second", top = 0) => {
+    let container = null;
+    if (type === "hour") {
+      container = hoursRef.current;
+    } else if (type === "minute") {
+      container = minutesRef.current;
+    } else {
+      container = secondsRef.current;
+    }
+    container?.scrollTo({
+      behavior: "smooth",
+      top,
+    });
+  };
+
   const handleTimeChange = (
+    event: React.MouseEvent<HTMLButtonElement, MouseEvent>,
     type: "hour" | "minute" | "second",
     value: string
   ) => {
@@ -116,24 +135,46 @@ export const MutiForm = () => {
     }
 
     form.setValue("start_date", newDate);
+
+    const button = event.currentTarget;
+    scrollToPosition(type, button.offsetTop);
   };
 
-  const hoursRef = useRef<HTMLDivElement>(null);
-  const minutesRef = useRef<HTMLDivElement>(null);
-  const secondsRef = useRef<HTMLDivElement>(null);
+  const handleOpenAutoFocus = () => {
+    const date = form.getValues("start_date");
+    if (!date) return;
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    const second = date.getSeconds();
 
-  const scrollToPosition = (type: "hour" | "minute" | "second") => {
-    if (type === "hour") {
-      hoursRef.current?.scrollTo({
-        behavior: "smooth",
-        top: 300,
-      });
-    }
+    // hour
+    const hoursContainer = hoursRef.current;
+
+    // minute
+    const mintuesContainer = minutesRef.current;
+
+    // second
+    const secondsContainer = secondsRef.current;
+
+    if (!hoursContainer || !mintuesContainer || !secondsContainer) return;
+
+    const hourCheckButtonDom = hoursContainer.querySelector(
+      `button[data-hour="${hour}"]`
+    ) as HTMLButtonElement;
+    const minuteCheckButtonDom = mintuesContainer.querySelector(
+      `button[data-minute="${minute}"]`
+    ) as HTMLButtonElement;
+    const secondCheckButtonDom = secondsContainer.querySelector(
+      `button[data-second="${second}"]`
+    ) as HTMLButtonElement;
+
+    if (!hourCheckButtonDom || !minuteCheckButtonDom || !secondCheckButtonDom)
+      return;
+
+    scrollToPosition("hour", hourCheckButtonDom.offsetTop);
+    scrollToPosition("minute", minuteCheckButtonDom.offsetTop);
+    scrollToPosition("second", secondCheckButtonDom.offsetTop);
   };
-
-  useEffect(() => {
-    scrollToPosition("hour");
-  }, [start_date]);
 
   return (
     <div className="w-full h-screen flex flex-col py-12 items-center">
@@ -180,13 +221,15 @@ export const MutiForm = () => {
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
+                    <PopoverContent
+                      className="w-auto p-0"
+                      onOpenAutoFocus={handleOpenAutoFocus}
+                    >
                       <div className="sm:flex">
                         <Calendar
                           mode="single"
                           selected={field.value}
                           onSelect={handleDateSelect}
-                          initialFocus
                         />
                         <div className="flex flex-col sm:flex-row sm:h-[300px] divide-y sm:divide-y-0 sm:divide-x">
                           <ScrollArea className="w-64 sm:w-auto" ref={hoursRef}>
@@ -196,6 +239,7 @@ export const MutiForm = () => {
                                   <Button
                                     key={hour}
                                     size="icon"
+                                    data-hour={hour}
                                     variant={
                                       field.value &&
                                       field.value.getHours() === hour
@@ -203,8 +247,12 @@ export const MutiForm = () => {
                                         : "ghost"
                                     }
                                     className="sm:w-full shrink-0 aspect-square"
-                                    onClick={() =>
-                                      handleTimeChange("hour", hour.toString())
+                                    onClick={(e) =>
+                                      handleTimeChange(
+                                        e,
+                                        "hour",
+                                        hour.toString()
+                                      )
                                     }
                                   >
                                     {hour}
@@ -217,13 +265,17 @@ export const MutiForm = () => {
                               className="sm:hidden"
                             />
                           </ScrollArea>
-                          <ScrollArea className="w-64 sm:w-auto">
+                          <ScrollArea
+                            className="w-64 sm:w-auto"
+                            ref={minutesRef}
+                          >
                             <div className="flex sm:flex-col p-2">
                               {Array.from({ length: 60 }, (_, i) => i).map(
                                 (minute) => (
                                   <Button
                                     key={minute}
                                     size="icon"
+                                    data-minute={minute}
                                     variant={
                                       field.value &&
                                       field.value.getMinutes() === minute
@@ -231,8 +283,9 @@ export const MutiForm = () => {
                                         : "ghost"
                                     }
                                     className="sm:w-full shrink-0 aspect-square"
-                                    onClick={() =>
+                                    onClick={(e) =>
                                       handleTimeChange(
+                                        e,
                                         "minute",
                                         minute.toString()
                                       )
@@ -248,13 +301,17 @@ export const MutiForm = () => {
                               className="sm:hidden"
                             />
                           </ScrollArea>
-                          <ScrollArea className="w-64 sm:w-auto">
+                          <ScrollArea
+                            className="w-64 sm:w-auto"
+                            ref={secondsRef}
+                          >
                             <div className="flex sm:flex-col p-2">
                               {Array.from({ length: 60 }, (_, i) => i).map(
                                 (second) => (
                                   <Button
                                     key={second}
                                     size="icon"
+                                    data-second={second}
                                     variant={
                                       field.value &&
                                       field.value.getSeconds() === second
@@ -262,8 +319,9 @@ export const MutiForm = () => {
                                         : "ghost"
                                     }
                                     className="sm:w-full shrink-0 aspect-square"
-                                    onClick={() =>
+                                    onClick={(e) =>
                                       handleTimeChange(
+                                        e,
                                         "second",
                                         second.toString()
                                       )
